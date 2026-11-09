@@ -43,46 +43,38 @@
     </div>
   </header>
 
-  <div class="ambient-scene" aria-hidden="true">
-    <img class="agile-object" id="agile-object" src="assets/agile-loop-emblem.png" alt="">
-  </div>
-
-  <div class="custom-cursor" id="custom-cursor" aria-hidden="true">
-    <span class="cursor-orbit"></span>
-    <img src="assets/agile-loop-emblem.png" alt="">
-    <span class="cursor-label"></span>
-  </div>
+  <canvas class="particle-field" id="particle-field" aria-hidden="true"></canvas>
 
   <main id="main">
     <section class="hero page-section" id="home" aria-labelledby="hero-title">
-      <div class="hero-inner content-wrap">
-        <div class="hero-copy">
-          <p class="eyebrow"><span class="status-dot"></span> CLOUD / INFRASTRUCTURE ENGINEER · PUNE, INDIA</p>
-          <h1 id="hero-title">Reliable systems.<br><em>Ready to adapt.</em></h1>
-          <p class="hero-intro">I’m Omkar Pagade — a cloud and infrastructure professional working across AWS, Linux, networking, VMware, NetApp, and Terraform.</p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="#work">Explore projects <i class="bi bi-arrow-down-right" aria-hidden="true"></i></a>
-            <a class="button button-quiet" href="omkar_resume_27-09-2026.pdf" target="_blank" rel="noopener">View resume <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+      <div class="constellation-layout">
+        <div class="constellation-main">
+          <div class="constellation-heading">
+            <div><p class="eyebrow"><span class="status-dot"></span> CLOUD / INFRASTRUCTURE ENGINEER · PUNE, INDIA</p>
+              <h1 id="hero-title">Omkar’s <em>orbit</em></h1></div>
+            <span class="graph-hint"><i class="bi bi-cursor" aria-hidden="true"></i> Hover the core to explore</span>
           </div>
-          <div class="hero-social-row" aria-label="Social links">
-            <a href="https://www.linkedin.com/in/omkar-pagade-4b0a09382" target="_blank" rel="noopener"><i class="bi bi-linkedin" aria-hidden="true"></i><span>LinkedIn</span></a>
-            <span class="social-separator" aria-hidden="true"></span>
-            <a href="https://github.com/Omkarsp1409" target="_blank" rel="noopener"><i class="bi bi-github" aria-hidden="true"></i><span>GitHub</span></a>
+          <div class="network-stage" id="network-stage" aria-label="Interactive map of Omkar's skills and projects">
+            <canvas class="network-lines" id="network-lines" aria-hidden="true"></canvas>
+            <div class="network-map" id="network-map"></div>
+            <button class="core-node" id="core-node" type="button" aria-expanded="false" aria-controls="network-map" aria-label="Explore Omkar Pagade's skills and projects">
+              <span class="core-halo"></span><span class="core-orb" aria-hidden="true"></span>
+              <span class="core-name">OMKAR PAGADE</span><span class="core-role">Cloud &amp; Infrastructure</span>
+              <span class="core-prompt"><i class="bi bi-stars" aria-hidden="true"></i> EXPLORE</span>
+            </button>
+            <div class="graph-legend"><span><i class="legend-dot legend-skill"></i> Skills</span><span><i class="legend-dot legend-project"></i> Projects</span></div>
           </div>
         </div>
-
-        <div class="hero-visual">
-          <div class="hero-photo">
-            <img src="assets/omkar-profile.webp" alt="Portrait of Omkar Pagade" width="112" height="112" fetchpriority="high">
-            <span class="photo-status" aria-hidden="true"></span>
-            <span><strong>Omkar Pagade</strong><small>Cloud &amp; Infrastructure</small></span>
-          </div>
-          <p class="object-caption"><span>01</span> AGILE LOOP <i aria-hidden="true"></i> ITERATE · INSPECT · ADAPT</p>
-        </div>
+        <aside class="profile-sidebar" aria-label="Omkar's profile details">
+          <div class="sidebar-title"><span>PROFILE NODE</span><i class="bi bi-three-dots" aria-hidden="true"></i></div>
+          <div class="sidebar-identity"><img src="assets/omkar-profile.webp" alt="Portrait of Omkar Pagade" width="58" height="58"><div><strong>Omkar Pagade</strong><span><i class="status-dot"></i> Open to opportunities</span></div></div>
+          <p class="sidebar-summary">Cloud &amp; infrastructure engineer building reliable systems with AWS, Linux, and automation.</p>
+          <div class="sidebar-facts"><div><span>BASED IN</span><strong>Pune, India</strong></div><div><span>EDUCATION</span><strong>BCA · MMCC Pune</strong></div><div><span>EXPERIENCE</span><strong>IT support &amp; infrastructure</strong></div></div>
+          <div class="learning-card"><div class="learning-heading"><i class="bi bi-lightning-charge" aria-hidden="true"></i><span>LEARNING NOW</span></div><strong>Infrastructure automation</strong><p>Building deeper hands-on practice with Terraform, Ansible, Docker, and repeatable AWS deployments.</p><div class="learning-tags"><span>Terraform</span><span>Ansible</span><span>Docker</span></div></div>
+          <div class="sidebar-links"><a href="https://github.com/Omkarsp1409" target="_blank" rel="noopener"><i class="bi bi-github" aria-hidden="true"></i> GitHub <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a><a href="omkar_resume_27-09-2026.pdf" target="_blank" rel="noopener"><i class="bi bi-file-earmark-person" aria-hidden="true"></i> Resume <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a><a href="mailto:pagadeomkar1409@gmail.com"><i class="bi bi-envelope" aria-hidden="true"></i> Contact <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></div>
+        </aside>
       </div>
-
-      <a class="scroll-cue" href="#about"><span>SCROLL TO EXPLORE</span><i class="bi bi-arrow-down" aria-hidden="true"></i></a>
-      <span class="hero-index" aria-hidden="true">00 — 05</span>
+      <a class="scroll-cue" href="#about"><span>SCROLL TO EXPLORE PROFILE</span><i class="bi bi-arrow-down" aria-hidden="true"></i></a>
     </section>
 
     <section class="about-section page-section" id="about" aria-labelledby="about-title">

@@ -8,7 +8,7 @@ Open `index.html` directly in a browser or serve this folder with any static web
 
 ## Resume and images
 
-The resume is `omkar_resume_27-09-2026.pdf`. The edited profile portrait, generated Agile loop emblem, and project illustrations are in `assets/`; keep that folder beside `index.html` when publishing.
+The resume is `omkar_resume_27-09-2026.pdf`. The edited profile portrait, ribbed Agile loop emblem, and project illustrations are in `assets/`; keep that folder beside `index.html` when publishing.
 
 ## Updating the site
 

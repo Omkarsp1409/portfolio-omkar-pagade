@@ -181,6 +181,197 @@ const projects = [
   }
 ];
 
+const networkStage = document.querySelector('#network-stage');
+const networkMap = document.querySelector('#network-map');
+const networkCanvas = document.querySelector('#network-lines');
+const coreNode = document.querySelector('#core-node');
+const profileSkills = [
+  { id: 'cloud', label: 'Cloud & AWS', icon: 'bi-cloud', match: /aws|cloud|lambda|rds|s3|vpc|ec2|serverless/i },
+  { id: 'automation', label: 'Linux & Automation', icon: 'bi-terminal', match: /linux|terraform|ansible|docker|bash|git/i },
+  { id: 'virtualization', label: 'Virtualization & Storage', icon: 'bi-hdd-stack', match: /vmware|netapp|storage|virtual/i },
+  { id: 'networking', label: 'Networking & Support', icon: 'bi-diagram-3', match: /network|routing|transit|support/i }
+];
+const projectSkill = (project) => {
+  const tags = project.title + ' ' + project.tags.join(' ') + ' ' + project.type;
+  if (/vmware|netapp|storage|virtual/i.test(tags)) return 'virtualization';
+  if (/multi.branch|transit gateway|network/i.test(tags)) return 'networking';
+  if (/terraform|linux|ansible|docker|bash|git server|drift detection/i.test(tags)) return 'automation';
+  return 'cloud';
+};
+
+if (networkStage && networkMap && networkCanvas && coreNode) {
+  const linkedProjects = projects.filter((project) => project.url);
+  const projectMarkup = linkedProjects.map((project, index) => {
+    const skill = projectSkill(project);
+    const top = 9 + (index / Math.max(linkedProjects.length - 1, 1)) * 82;
+    return '<a class="orbit-node project-node" data-kind="project" data-skill="' + skill + '" data-node-order="' + index + '" style="--node-order:' + (profileSkills.length + index) + ';--node-top:' + top + '%" href="' + project.url + '" target="_blank" rel="noopener" aria-label="Open GitHub project: ' + project.title + '" title="' + project.title + '">' + project.title + '</a>';
+  }).join('');
+  const skillMarkup = profileSkills.map((skill, index) => {
+    const top = 14 + index * 24;
+    return '<button class="orbit-node skill-node" data-kind="skill" data-skill="' + skill.id + '" data-node-order="' + index + '" style="--node-order:' + index + ';--node-top:' + top + '%" type="button" aria-pressed="false"><i class="bi ' + skill.icon + '" aria-hidden="true"></i><span>' + skill.label + '</span></button>';
+  }).join('');
+  networkMap.innerHTML = skillMarkup + projectMarkup;
+  const skillNodes = [...networkMap.querySelectorAll('.skill-node')];
+  const projectNodes = [...networkMap.querySelectorAll('.project-node')];
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let selectedSkill = '';
+  let active = false;
+  let rafId = 0;
+  const ctx = networkCanvas.getContext('2d');
+  const particleCanvas = document.querySelector('#particle-field');
+  const particleCtx = particleCanvas?.getContext('2d');
+  const sphereParticles = Array.from({ length: 560 }, (_, index) => {
+    const y = 1 - (index / 559) * 2;
+    const radius = Math.sqrt(1 - y * y);
+    const angle = Math.PI * (3 - Math.sqrt(5)) * index;
+    return { x: Math.cos(angle) * radius, y, z: Math.sin(angle) * radius, phase: (index * 2.399) % (Math.PI * 2) };
+  });
+  const setExpanded = (value) => {
+    active = value;
+    networkStage.classList.toggle('is-expanded', value);
+    coreNode.setAttribute('aria-expanded', String(value));
+    if (!value) {
+      selectedSkill = '';
+      skillNodes.forEach((node) => { node.classList.remove('is-selected'); node.setAttribute('aria-pressed', 'false'); });
+      projectNodes.forEach((node) => node.classList.remove('is-related'));
+    }
+    drawConnections();
+  };
+  const resizeCanvases = () => {
+    const stage = networkStage.getBoundingClientRect();
+    const compact = window.matchMedia('(max-width: 780px)').matches;
+    skillNodes.forEach((node, index) => {
+      if (compact) {
+        node.style.left = '';
+        node.style.top = '';
+      } else {
+        const angle = [-68, -24, 24, 68][index] * Math.PI / 180;
+        node.style.left = (17 + 33 * Math.cos(angle)) + '%';
+        node.style.top = (50 + 39 * Math.sin(angle)) + '%';
+      }
+    });
+    projectNodes.forEach((node, index) => {
+      const ratio = index / Math.max(projectNodes.length - 1, 1);
+      if (compact) {
+        node.style.left = '';
+        node.style.top = (56 + ratio * 40) + '%';
+      } else {
+        const top = 7 + ratio * 86;
+        const arcOffset = (top - 50) / 46;
+        node.style.left = (18 + 66 * Math.sqrt(Math.max(0, 1 - arcOffset * arcOffset))) + '%';
+        node.style.top = top + '%';
+      }
+    });
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    networkCanvas.width = Math.round(stage.width * dpr);
+    networkCanvas.height = Math.round(stage.height * dpr);
+    networkCanvas.style.width = stage.width + 'px';
+    networkCanvas.style.height = stage.height + 'px';
+    if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (particleCanvas && particleCtx) {
+      particleCanvas.width = Math.round(window.innerWidth * dpr);
+      particleCanvas.height = Math.round(window.innerHeight * dpr);
+      particleCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    drawConnections();
+  };
+  const point = (element) => {
+    const box = element.getBoundingClientRect();
+    const stage = networkStage.getBoundingClientRect();
+    return { x: box.left + box.width / 2 - stage.left, y: box.top + box.height / 2 - stage.top };
+  };
+  function drawConnections() {
+    if (!ctx) return;
+    const stage = networkStage.getBoundingClientRect();
+    if (!stage.width || !stage.height) return;
+    ctx.clearRect(0, 0, stage.width, stage.height);
+    if (!active) return;
+    const root = point(coreNode);
+    const selected = selectedSkill;
+    const compact = window.matchMedia('(max-width: 780px)').matches;
+    skillNodes.forEach((node) => {
+      const branch = node.dataset.skill;
+      const end = point(node);
+      const middle = root.x + (end.x - root.x) * .54;
+      const origin = compact ? { x: root.x, y: root.y + 70 } : { x: root.x + 45, y: root.y };
+      ctx.beginPath(); ctx.moveTo(origin.x, origin.y);
+      ctx.bezierCurveTo(compact ? root.x : middle, compact ? origin.y + 34 : root.y, middle, end.y, compact ? end.x : end.x - 78, end.y);
+      ctx.strokeStyle = selected === branch ? 'rgba(150,177,255,.82)' : 'rgba(139,160,220,.24)';
+      ctx.lineWidth = selected === branch ? 1.7 : 1;
+      ctx.shadowColor = 'rgba(117,151,255,.55)'; ctx.shadowBlur = 7; ctx.stroke(); ctx.shadowBlur = 0;
+      const projectsInBranch = projectNodes.filter((project) => project.dataset.skill === branch);
+      projectsInBranch.forEach((project) => {
+        const target = point(project);
+        const delta = target.x - end.x;
+        const direction = Math.sign(delta) || 1;
+        const sourceX = end.x + direction * Math.min(76, Math.abs(delta) * .4);
+        const destinationX = target.x - direction * Math.min(26, Math.abs(delta) * .18);
+        const bend = sourceX + (destinationX - sourceX) * .55;
+        ctx.beginPath(); ctx.moveTo(sourceX, end.y);
+        ctx.bezierCurveTo(bend, end.y, bend, target.y, destinationX, target.y);
+        ctx.strokeStyle = selected === branch ? 'rgba(157,180,255,.72)' : 'rgba(165,177,211,.15)';
+        ctx.lineWidth = selected === branch ? 1.4 : 1; ctx.stroke();
+      });
+    });
+  }
+  const drawParticleSphere = (time) => {
+    if (!particleCtx || !particleCanvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    particleCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    const orb = coreNode.querySelector('.core-orb').getBoundingClientRect();
+    const centerX = orb.left + orb.width / 2;
+    const centerY = orb.top + orb.height / 2;
+    const radius = Math.min(orb.width, orb.height) * .48;
+    const angle = reducedMotion ? .2 : time * .00024;
+    sphereParticles.forEach((particle) => {
+      const x = particle.x * Math.cos(angle) - particle.z * Math.sin(angle);
+      const z = particle.x * Math.sin(angle) + particle.z * Math.cos(angle);
+      const perspective = 1 / (1.5 - z * .48);
+      const px = centerX + x * radius * perspective;
+      const py = centerY + particle.y * radius * perspective;
+      const twinkle = .52 + .48 * (.5 + .5 * Math.sin(time * .0017 + particle.phase));
+      const alpha = Math.max(.08, Math.min(.95, (z + 1.28) * .4 * twinkle));
+      const size = (particle.phase > 3 ? 1.45 : .72) * perspective;
+      particleCtx.beginPath(); particleCtx.arc(px, py, size, 0, Math.PI * 2);
+      particleCtx.fillStyle = 'rgba(157,184,255,' + alpha + ')';
+      particleCtx.shadowColor = 'rgba(102,141,255,' + (alpha * .75) + ')'; particleCtx.shadowBlur = z > .25 ? 7 : 2; particleCtx.fill();
+    });
+    particleCtx.shadowBlur = 0;
+  };
+  const animate = (time) => {
+    drawParticleSphere(time);
+    if (!reducedMotion) rafId = window.requestAnimationFrame(animate);
+  };
+  coreNode.addEventListener('pointerenter', (event) => { if (event.pointerType !== 'touch') setExpanded(true); });
+  coreNode.addEventListener('click', () => setExpanded(true));
+  networkStage.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && active) {
+      setExpanded(false);
+      coreNode.focus();
+    }
+  });
+  networkStage.addEventListener('pointerleave', (event) => {
+    if (event.pointerType !== 'touch') setExpanded(false);
+  });
+  skillNodes.forEach((node) => node.addEventListener('click', () => {
+    selectedSkill = selectedSkill === node.dataset.skill ? '' : node.dataset.skill;
+    skillNodes.forEach((skill) => {
+      const chosen = skill.dataset.skill === selectedSkill;
+      skill.classList.toggle('is-selected', chosen);
+      skill.setAttribute('aria-pressed', String(chosen));
+    });
+    projectNodes.forEach((project) => project.classList.toggle('is-related', Boolean(selectedSkill) && project.dataset.skill === selectedSkill));
+    drawConnections();
+  }));
+  window.addEventListener('resize', resizeCanvases, { passive: true });
+  resizeCanvases();
+  rafId = window.requestAnimationFrame(animate);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && rafId) { window.cancelAnimationFrame(rafId); rafId = 0; }
+    else if (!document.hidden && !reducedMotion && !rafId) rafId = window.requestAnimationFrame(animate);
+  });
+}
+
 const featuredProjects = document.querySelector('#featured-projects');
 const moreProjects = document.querySelector('#more-projects');
 const projectTagMarkup = (tags) => tags.map((tag) => '<span>' + tag + '</span>').join('');
@@ -240,13 +431,13 @@ const agileObject = document.querySelector('#agile-object');
 
 if (agileObject && !prefersReducedMotion.matches) {
   const motionStops = [
-    { at: 0, x: 0, y: 0, rx: 7, ry: -16, rz: -9, scale: .98, opacity: .53 },
-    { at: .18, x: 16, y: -5, rx: -8, ry: 38, rz: 14, scale: .92, opacity: .43 },
-    { at: .42, x: 10, y: 2, rx: 25, ry: 162, rz: -24, scale: .78, opacity: .36 },
-    { at: .62, x: -18, y: -3, rx: -12, ry: 224, rz: 14, scale: .74, opacity: .33 },
-    { at: .82, x: 18, y: 6, rx: 18, ry: 310, rz: -14, scale: .84, opacity: .45 },
-    { at: 1, x: -4, y: 0, rx: 3, ry: 360, rz: 2, scale: .92, opacity: .53 }
-  ];
+    { selector: '#home', x: 0, y: 0, rx: 7, ry: -16, rz: -9, scale: 1, opacity: .55 },
+    { selector: '#about', x: 12, y: -5, rx: -8, ry: 38, rz: 14, scale: .91, opacity: .44 },
+    { selector: '#work', x: 17, y: 2, rx: 25, ry: 150, rz: -24, scale: .79, opacity: .39 },
+    { selector: '#experience', x: -17, y: -3, rx: -12, ry: 228, rz: 14, scale: .75, opacity: .36 },
+    { selector: '#stack', x: 16, y: 6, rx: 18, ry: 310, rz: -14, scale: .86, opacity: .46 },
+    { selector: '#contact', x: -3, y: 0, rx: 3, ry: 360, rz: 2, scale: .98, opacity: .55 }
+  ].map((stop) => ({ ...stop, section: document.querySelector(stop.selector) })).filter((stop) => stop.section);
 
   let pointerX = 0;
   let pointerY = 0;
@@ -256,22 +447,28 @@ if (agileObject && !prefersReducedMotion.matches) {
   const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
   const renderObjectMotion = () => {
-    const maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
-    const progress = clamp(window.scrollY / maxScroll, 0, 1);
-    let index = motionStops.findIndex((stop, stopIndex) => stopIndex < motionStops.length - 1 && progress >= stop.at && progress <= motionStops[stopIndex + 1].at);
-    if (index < 0) index = motionStops.length - 2;
+    if (motionStops.length < 2) return;
+
+    const scrollMarker = window.scrollY + window.innerHeight * .12;
+    const sectionTops = motionStops.map((stop) => stop.section.getBoundingClientRect().top + window.scrollY);
+    let index = sectionTops.findIndex((top, stopIndex) => stopIndex < sectionTops.length - 1 && scrollMarker >= top && scrollMarker < sectionTops[stopIndex + 1]);
+    if (index < 0) index = scrollMarker < sectionTops[0] ? 0 : motionStops.length - 2;
 
     const start = motionStops[index];
     const end = motionStops[index + 1];
-    const local = clamp((progress - start.at) / (end.at - start.at), 0, 1);
+    const local = clamp((scrollMarker - sectionTops[index]) / Math.max(sectionTops[index + 1] - sectionTops[index], 1), 0, 1);
+    const compactViewport = window.matchMedia('(max-width: 780px)').matches;
+    const positionScale = compactViewport ? .5 : 1;
+    const objectScale = compactViewport ? .82 : 1;
+    const opacityScale = compactViewport ? .82 : 1;
     const state = {
-      x: lerp(start.x, end.x, local) + pointerX * 1.1,
-      y: lerp(start.y, end.y, local) + pointerY * .7,
+      x: (lerp(start.x, end.x, local) + pointerX * 1.1) * positionScale,
+      y: (lerp(start.y, end.y, local) + pointerY * .7) * positionScale,
       rx: lerp(start.rx, end.rx, local) - pointerY * 1.8,
       ry: lerp(start.ry, end.ry, local) + pointerX * 2.2,
       rz: lerp(start.rz, end.rz, local) + pointerX * .6,
-      scale: lerp(start.scale, end.scale, local),
-      opacity: lerp(start.opacity, end.opacity, local)
+      scale: lerp(start.scale, end.scale, local) * objectScale,
+      opacity: lerp(start.opacity, end.opacity, local) * opacityScale
     };
 
     agileObject.style.transform = 'translate3d(calc(-50% + ' + state.x + 'vw), calc(-50% + ' + state.y + 'vh), 0) rotateX(' + state.rx + 'deg) rotateY(' + state.ry + 'deg) rotateZ(' + state.rz + 'deg) scale(' + state.scale + ')';
